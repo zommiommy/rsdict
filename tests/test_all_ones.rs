@@ -1,7 +1,5 @@
 // other library used for correctness checks
 extern crate fid;
-mod utils;
-use utils::*;
 use fid::{FID, BitVector};
 
 #[test]

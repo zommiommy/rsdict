@@ -32,7 +32,7 @@ pub struct RsDictIterator<'a> {
     current_code: u64,
     ptr: usize,
     index: usize,
-    max_index: Option<usize>,
+    max_index: usize,
     max_value: Option<u64>,
 }
 
@@ -47,7 +47,7 @@ impl<'a> RsDictIterator<'a> {
             current_code: current_code,
             ptr: 0,
             index: 0,
-            max_index: None,
+            max_index: father.sb_classes.len(),
             max_value: None,
         }
     }
@@ -62,7 +62,7 @@ impl<'a> RsDictIterator<'a> {
             current_code: current_code,
             ptr: 0,
             index: 0,
-            max_index: None,
+            max_index: father.sb_classes.len(),
             max_value: Some(range.end),
         }
     }
@@ -77,7 +77,7 @@ impl<'a> RsDictIterator<'a> {
             current_code: current_code,
             ptr: 0,
             index: 0,
-            max_index: Some(range.end),
+            max_index: std::cmp::min(range.end, father.sb_classes.len()),
             max_value: None,
         }
     }
@@ -91,28 +91,28 @@ impl<'a> Iterator for RsDictIterator<'a> {
         if self.current_code == 0 { 
             self.index += 1;
             // find the next not empty word
-            let class = loop {
-                if self.index >= self.father.sb_classes.len() {
+            self.current_code = loop {
+                // if its the last block just dump it
+                if self.index == self.max_index {
+                    break self.father.last_block.bits;
+                }
+                // if we are over just end the iterator
+                if self.index > self.max_index {
                     return None;
                 }
-                if let Some(max) = &self.max_index {
-                    if self.index > *max {
-                        return None;
-                    }
+                // we are in an valid index so we must decode the code
+                let class =  self.father.sb_classes[self.index];
+                // we care only about ones so an empty word can be skipped
+                if class == 0 {
+                    self.index += 1;
+                    continue;
                 }
-                let current_class =  self.father.sb_classes[self.index];
-                if current_class != 0 {
-                    break current_class;
-                }
-                self.index += 1;
+                // we have ones in the current code so we can decode it
+                let code_length = ENUM_CODE_LENGTH[class as usize] as usize;
+                let code = self.father.sb_indices.get(self.ptr, code_length);
+                self.ptr += code_length;
+                break enum_code::decode(code, class);
             };
-            // retreive the code
-            let code_length = ENUM_CODE_LENGTH[class as usize] as usize;
-            let code = self.father.sb_indices.get(self.ptr, code_length);
-            self.ptr += code_length;
-            
-            // decompress the word
-            self.current_code = enum_code::decode(code, class);
         }
         
         // get the index of the first one (we are guaranteed to have
