@@ -92,6 +92,9 @@ impl<'a> Iterator for RsDictIterator<'a> {
             self.index += 1;
             // find the next not empty word
             let class = loop {
+                if self.index >= self.father.sb_classes.len() {
+                    return None;
+                }
                 if let Some(max) = &self.max_index {
                     if self.index > *max {
                         return None;
@@ -102,9 +105,6 @@ impl<'a> Iterator for RsDictIterator<'a> {
                     break current_class;
                 }
                 self.index += 1;
-                if self.index >= self.father.sb_classes.len() {
-                    return None;
-                }
             };
             // retreive the code
             let code_length = ENUM_CODE_LENGTH[class as usize] as usize;
