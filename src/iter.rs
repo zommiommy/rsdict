@@ -1,5 +1,4 @@
 use super::*;
-use std::ops::{Range, Index};
 
 impl<'a> IntoIterator for &'a RsDict {
     type Item = u64;
@@ -15,17 +14,7 @@ impl<'a> RsDict {
     pub fn iter(&'a self) -> RsDictIterator<'a> {
         self.into_iter()
     }
-
-    /// return an Iterator over the indices of the bits set to one in the RsDict which falls in the range `range`.
-    pub fn iter_range_values(&'a self, range: Range<u64>) -> RsDictIterator<'a> {
-        RsDictIterator::new_range_values(self, range)
-    }
-
-    /// return an Iterator over the indices of the bits set to one in the RsDict whichs indices falls in the range `range`.
-    pub fn iter_range_indicies(&'a self, range: Range<usize>) -> RsDictIterator<'a> {
-        RsDictIterator::new_range_indices(self, range)
-    }
-} 
+}
 
 pub struct RsDictIterator<'a> {
     father: &'a RsDict,
@@ -33,7 +22,6 @@ pub struct RsDictIterator<'a> {
     ptr: usize,
     index: usize,
     max_index: usize,
-    max_value: Option<u64>,
 }
 
 impl<'a> RsDictIterator<'a> {
@@ -48,37 +36,6 @@ impl<'a> RsDictIterator<'a> {
             ptr: 0,
             index: 0,
             max_index: father.sb_classes.len(),
-            max_value: None,
-        }
-    }
-
-    pub fn new_range_values(father: &RsDict, range: Range<u64>) -> RsDictIterator {
-        let class = father.sb_classes[0];
-        let code_length = ENUM_CODE_LENGTH[class as usize] as usize;
-        let code = father.sb_indices.get(0, code_length);
-        let current_code = enum_code::decode(code, class);
-        RsDictIterator{
-            father:father,
-            current_code: current_code,
-            ptr: 0,
-            index: 0,
-            max_index: father.sb_classes.len(),
-            max_value: Some(range.end),
-        }
-    }
-
-    pub fn new_range_indices(father: &RsDict, range: Range<usize>) -> RsDictIterator {
-        let class = father.sb_classes[0];
-        let code_length = ENUM_CODE_LENGTH[class as usize] as usize;
-        let code = father.sb_indices.get(0, code_length);
-        let current_code = enum_code::decode(code, class);
-        RsDictIterator{
-            father:father,
-            current_code: current_code,
-            ptr: 0,
-            index: 0,
-            max_index: std::cmp::min(range.end, father.sb_classes.len()),
-            max_value: None,
         }
     }
 }
@@ -89,9 +46,9 @@ impl<'a> Iterator for RsDictIterator<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         // if we have no values left, then read a new u64 chunk from the Rsdict
         if self.current_code == 0 { 
-            self.index += 1;
             // find the next not empty word
             self.current_code = loop {
+                self.index += 1;
                 // if its the last block just dump it
                 if self.index == self.max_index {
                     break self.father.last_block.bits;
@@ -104,7 +61,6 @@ impl<'a> Iterator for RsDictIterator<'a> {
                 let class =  self.father.sb_classes[self.index];
                 // we care only about ones so an empty word can be skipped
                 if class == 0 {
-                    self.index += 1;
                     continue;
                 }
                 // we have ones in the current code so we can decode it
@@ -122,13 +78,6 @@ impl<'a> Iterator for RsDictIterator<'a> {
         self.current_code ^= 1 << t;
         // compute the result value
         let result = self.index as u64 * 64 + t as u64;
-
-        // check if we are at the end
-        if let Some(max) = &self.max_value{
-            if result > *max {
-                return None;
-            }
-        }
 
         Some(result)
     }
