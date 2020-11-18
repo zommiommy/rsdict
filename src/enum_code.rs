@@ -41,7 +41,6 @@ pub fn encode(value: u64, class: u8) -> (u8, u64) {
     (code_len, code)
 }
 
-#[cfg(test)]
 pub fn decode(mut code: u64, class: u8) -> u64 {
     if ENUM_CODE_LENGTH[class as usize] == SMALL_BLOCK_SIZE as u8 {
         return code;

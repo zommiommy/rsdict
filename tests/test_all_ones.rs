@@ -1,5 +1,7 @@
 // other library used for correctness checks
 extern crate fid;
+mod utils;
+use utils::*;
 use fid::{FID, BitVector};
 
 #[test]
@@ -41,3 +43,4 @@ fn test_get_bits() {
         assert_eq!(r.get_bit(i), bv.get(i));
     }
 }
+

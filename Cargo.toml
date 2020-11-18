@@ -37,7 +37,7 @@ optional = true
 quickcheck = "0.9.0"
 quickcheck_macros = "0.8.0"
 criterion = "0.3"
-rand = "0.7"
+rand = {version="0.7", features = ["small_rng"] }
 succinct = "0.5.2"
 fid = "0.1.7"
 

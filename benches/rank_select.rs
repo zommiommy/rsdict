@@ -116,5 +116,52 @@ fn bench_select(c: &mut Criterion) {
     );
 }
 
-criterion_group!(benches, bench_rank, bench_select);
+use rand::rngs::SmallRng;
+use rand::RngCore;
+
+pub const SEEDS: [u8; 16] = [
+    0xde, 0xad, 0xbe, 0xef, 0xc0, 0xfe, 0xbe, 0xbe, 0xde, 0xad, 0xbe, 0xef, 0xc0, 0xfe, 0xbe, 0xbe,
+];
+
+/// Test that everything runs properly in the PPI graph.
+pub fn build_random_sorted_vector(size: usize, max: u64) -> Vec<u64> {
+    let mut rng: SmallRng = SmallRng::from_seed(SEEDS);
+    let mut vector = Vec::new();
+    for _ in 0..size {
+        let t = rng.next_u64() % max;
+        vector.push(t);
+    }
+    vector.sort();
+    vector
+}
+
+fn bench_iter(c: &mut Criterion) {
+
+    // crete a random vector of values
+    let vector = build_random_sorted_vector(20, 1_000_000);
+    
+    let mut r = rsdict::RsDict::new();
+    // initialize the struct with its values
+    let mut last_v = 0;
+    for v in &vector{
+        for _ in 0..(v - last_v).saturating_sub(1) {
+            r.push(false);
+        }
+        r.push(true);
+        last_v = *v;
+    }
+    c.bench_function("bench_iter", |b| {
+        b.iter(|| {
+            r.iter().collect::<Vec<_>>()
+        });
+    });
+
+    c.bench_function("bench_iter_with_select", |b| {
+        b.iter(|| {
+            (0..r.len()).map(|i| r.select1(i as u64)).collect::<Vec<_>>()
+        });
+    });
+}
+
+criterion_group!(benches, bench_iter); // bench_rank, bench_select, 
 criterion_main!(benches);

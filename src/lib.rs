@@ -57,6 +57,7 @@ use std::mem;
 
 mod constants;
 mod enum_code;
+mod iter;
 
 mod rank_acceleration;
 
