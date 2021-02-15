@@ -1,4 +1,5 @@
 use super::*;
+use std::ops::Range;
 
 impl<'a> IntoIterator for &'a RsDict {
     type Item = u64;
@@ -65,8 +66,8 @@ impl<'a> Iterator for RsDictIterator<'a> {
                 }
                 // we have ones in the current code so we can decode it
                 let code_length = ENUM_CODE_LENGTH[class as usize] as usize;
-                let code = self.father.sb_indices.get(self.ptr, code_length);
                 self.ptr += code_length;
+                let code = self.father.sb_indices.get(self.ptr, code_length);
                 break enum_code::decode(code, class);
             };
         }
@@ -74,10 +75,11 @@ impl<'a> Iterator for RsDictIterator<'a> {
         // get the index of the first one (we are guaranteed to have
         // at least one bit set to 1)
         let t = self.current_code.trailing_zeros();
+        
         // clear it from the current code
         self.current_code ^= 1 << t;
         // compute the result value
-        let result = self.index as u64 * 64 + t as u64;
+        let result = self.index as u64 * SMALL_BLOCK_SIZE + t as u64;
 
         Some(result)
     }
