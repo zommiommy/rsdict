@@ -27,14 +27,14 @@ fn test_iter() {
 
     let indices: Vec<u64> = vector.iter().enumerate().filter(|(i, x)| **x).map(|(i, x)| i as u64).collect();
 
-    assert_eq!(indices, r.iter().collect::<Vec<u64>>());;
+    assert_eq!(indices, r.iter().collect::<Vec<u64>>());
 }
 
 #[test]
 /// Check that elias fano runs considering a lot of possible combinations.
 fn test_iter_in_range() {
     let mut r = rsdict::RsDict::new();
-    let mut seed = 0xdeadbeef;
+    let mut seed = 0xc0febeef;
     let size = 100usize;
 
     for _ in 0..100 {

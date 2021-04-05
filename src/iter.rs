@@ -24,6 +24,7 @@ impl<'a> RsDict {
     }
 }
 
+#[derive(Debug)]
 pub struct RsDictIterator<'a> {
     father: &'a RsDict,
     current_code: u64,
@@ -34,21 +35,6 @@ pub struct RsDictIterator<'a> {
 }
 
 impl<'a> RsDictIterator<'a> {
-    /// Create a structure that iter over all the indices of the bits set to one.
-    pub fn new(father: &RsDict) -> RsDictIterator {
-        let class = father.sb_classes[0];
-        let code_length = ENUM_CODE_LENGTH[class as usize] as usize;
-        let code = father.sb_indices.get(0, code_length);
-        let current_code = enum_code::decode(code, class);
-        RsDictIterator{
-            father:father,
-            current_code: current_code,
-            ptr: 0,
-            index: 0,
-            max_index: father.sb_classes.len(),
-            max: None,
-        }
-    }
 
     /// Create a structure that iter over all the indices of the bits set to one
     /// which are inside the provided range.
@@ -73,7 +59,7 @@ impl<'a> RsDictIterator<'a> {
                     father:father,
                     current_code: code,
                     ptr: 0, // no need to initialize, it will never be used
-                    index: father.last_block_ind() as usize,
+                    index: father.last_block_ind() as usize / SMALL_BLOCK_SIZE as usize,
                     max_index: father.sb_classes.len(),
                     max: Some(range.end),
                 }
@@ -117,6 +103,34 @@ impl<'a> RsDictIterator<'a> {
             }
         )
     }
+    
+    /// Create a structure that iter over all the indices of the bits set to one.
+    pub fn new(father: &RsDict) -> RsDictIterator {
+        if father.sb_classes.len() > 0 {
+            let class = father.sb_classes[0];
+            let code_length = ENUM_CODE_LENGTH[class as usize] as usize;
+            let code = father.sb_indices.get(0, code_length);
+            let current_code = enum_code::decode(code, class);
+            RsDictIterator{
+                father:father,
+                current_code: current_code,
+                ptr: code_length,
+                index: 0,
+                max_index: father.sb_classes.len(),
+                max: None,
+            }
+        } else {
+            // all the data is in the last block
+            RsDictIterator{
+                father:father,
+                current_code: father.last_block.bits,
+                ptr: 0,
+                index: 0,
+                max_index: 0,
+                max: None,
+            }
+        }
+    }
 }
 
 impl<'a> Iterator for RsDictIterator<'a> {
@@ -144,16 +158,18 @@ impl<'a> Iterator for RsDictIterator<'a> {
                 }
                 // we have ones in the current code so we can decode it
                 let code_length = ENUM_CODE_LENGTH[class as usize] as usize;
-                self.ptr += code_length;
                 let code = self.father.sb_indices.get(self.ptr, code_length);
+                self.ptr += code_length;
                 break enum_code::decode(code, class);
             };
         }
+
+        //println!("[next] ccode:{:064b} index:{} ptr:{}", &self.current_code, &self.index, &self.ptr);
         
         // get the index of the first one (we are guaranteed to have
         // at least one bit set to 1)
         let t = self.current_code.trailing_zeros();
-        
+
         // clear it from the current code
         self.current_code = clear_lowest_bit_set(self.current_code);
 

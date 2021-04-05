@@ -1,5 +1,4 @@
 // other library used for correctness checks
-extern crate fid;
 use fid::{FID, BitVector};
 
 #[test]

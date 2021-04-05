@@ -18,7 +18,6 @@ debug = true
 
 [features]
 default = []
-fuzz = ["afl"]
 simd = ["packed_simd"]
 
 [dependencies]
@@ -27,10 +26,6 @@ simd = ["packed_simd"]
 package = "packed_simd_2"
 version = "0.3.4"
 features = ["into_bits"]
-optional = true
-
-[dependencies.afl]
-version = "0.5.2"
 optional = true
 
 [dev-dependencies]
@@ -43,10 +38,4 @@ fid = "0.1.7"
 
 [[bench]]
 name = "rank_select"
-harness = false
-
-[[test]]
-name = "rsdict_fuzz"
-path = "src/rsdict_fuzz.rs"
-required-features = ["fuzz"]
 harness = false
