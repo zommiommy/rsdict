@@ -11,17 +11,10 @@ fuzz_target!(|data: Vec<u16>| {
 
     let mut last_value = 0;
     for v in &data {
-        if *v == 0 {
-            r.push(true);
-        }
-
         for _ in last_value..*v {
             r.push(false);
         }
-
-        if *v != last_value {
-            r.push(true);
-        }
+        r.push(true);
         last_value = *v;
     }
 

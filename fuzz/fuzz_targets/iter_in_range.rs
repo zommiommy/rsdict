@@ -26,7 +26,7 @@ fuzz_target!(|data: &[u8]| {
     indices.sort();
     indices.dedup();
 
-    println!("start: {:10} end: {:10} indices: {:?}", start, end, indices);
+    //println!("start: {:10} end: {:10} indices: {:?}", start, end, indices);
 
     let mut r = rsdict::RsDict::new();
 
@@ -35,17 +35,16 @@ fuzz_target!(|data: &[u8]| {
         for _ in last_value..*v {
             r.push(false);
         }
-        if *v != last_value {
-            r.push(true);
-        }
+        r.push(true);
         last_value = *v;
     }
 
-    let indices: Vec<u16> = indices.iter()
-        .filter(|x| (start..end).contains(&(**x as usize)))
-        .cloned().collect();
+    let indices: Vec<u64> = r.iter()
+        .filter(|x| (start..end).contains(&(*x as usize))).collect();
 
     let result = r.iter_in_range(start as u64..end as u64);
+
+    //println!("dbug: {:?}", result);
 
     if result.is_none() {
         assert_eq!(0, indices.len(), "the iter returned non when there are data to be returned");
@@ -53,6 +52,10 @@ fuzz_target!(|data: &[u8]| {
     }
 
     let result: Vec<u64> = result.unwrap().collect();
+
+
+    //println!("truth: {:?}", &indices);
+    //println!("ours : {:?}", &result);
 
     assert_eq!(indices.len(), result.len(), "the length of the vector do not match!");
     for (a, b) in indices.iter().zip(result.iter()) {

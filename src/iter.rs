@@ -26,11 +26,18 @@ impl<'a> RsDict {
 
 #[derive(Debug)]
 pub struct RsDictIterator<'a> {
+    /// reference to the rsdict which is being iter
+    /// this is needed to read and decode the blocks
     father: &'a RsDict,
+    /// The current code already decoded
     current_code: u64,
+    /// Current pointer inside the enum_blocks
     ptr: usize,
+    /// Current small_block index
     index: usize,
+    /// Maximum index of where to stop
     max_index: usize,
+    /// Maximum value the iter will return
     max: Option<u64>,
 }
 
@@ -46,7 +53,6 @@ impl<'a> RsDictIterator<'a> {
             return None;
         }
 
-        let prefix_num_ones = father.num_ones - father.last_block.num_ones;
         // if the start bit is in the last block, clear the code accordingly
         if pos >= father.last_block_ind() {
             // Get the current code
@@ -70,7 +76,7 @@ impl<'a> RsDictIterator<'a> {
         let lblock = pos / LARGE_BLOCK_SIZE;
         let LargeBlock {
             mut pointer,
-            mut rank,
+            rank,
         } = father.large_blocks[lblock as usize];
 
         // Add in the ranks (i.e. the classes) per small block up to our
@@ -82,21 +88,23 @@ impl<'a> RsDictIterator<'a> {
         // codes array.
         let (class_sum, length_sum) =
             rank_acceleration::scan_block(&father.sb_classes, sblock_start, sblock);
-        // Update the pointer and the rank with the sum of the values,
-        rank += class_sum;
-        pointer += length_sum;
+
+            pointer += length_sum;
         // Get the class of the current block
         let sb_class = father.sb_classes[sblock];
+        let enum_code_length = ENUM_CODE_LENGTH[sb_class as usize];
         // Read the code
-        let mut  code = father.read_sb_index(pointer, ENUM_CODE_LENGTH[sb_class as usize]);
+        let enum_code = father.read_sb_index(pointer, enum_code_length);
+        // decode the code
+        let mut code = enum_code::decode(enum_code, sb_class);
         // filter the lower bits
-        code = clear_lower_bits(code, pos - rank);
+        code = clear_lower_bits(code, pos - (sblock as u64 * SMALL_BLOCK_SIZE));
         // Create the iterator
         Some(
             RsDictIterator{
                 father:father,
                 current_code: code,
-                ptr: pointer as usize, // no need to initialize, it will never be used
+                ptr: (pointer + enum_code_length as u64) as usize,
                 index: sblock,
                 max_index: father.sb_classes.len(),
                 max: Some(range.end),
@@ -158,9 +166,9 @@ impl<'a> Iterator for RsDictIterator<'a> {
                 }
                 // we have ones in the current code so we can decode it
                 let code_length = ENUM_CODE_LENGTH[class as usize] as usize;
-                let code = self.father.sb_indices.get(self.ptr, code_length);
+                let enum_code = self.father.sb_indices.get(self.ptr, code_length);
                 self.ptr += code_length;
-                break enum_code::decode(code, class);
+                break enum_code::decode(enum_code, class);
             };
         }
 
