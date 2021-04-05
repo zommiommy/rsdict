@@ -138,7 +138,7 @@ pub fn build_random_sorted_vector(size: usize, max: u64) -> Vec<u64> {
 fn bench_iter(c: &mut Criterion) {
 
     // crete a random vector of values
-    let vector = build_random_sorted_vector(20, 1_000_000);
+    let vector = build_random_sorted_vector(1000, 10_000_000);
     
     let mut r = rsdict::RsDict::new();
     // initialize the struct with its values
@@ -163,5 +163,5 @@ fn bench_iter(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, bench_iter); // bench_rank, bench_select, 
+criterion_group!(benches, bench_iter); //, bench_rank, bench_select);
 criterion_main!(benches);

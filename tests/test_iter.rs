@@ -63,8 +63,7 @@ fn test_iter_in_range() {
             .filter(|x| (start..end).contains(&(**x as u64)))
             .cloned().collect();
 
-        let result: Vec<u64> = r.iter_in_range(start as u64..end as u64)
-            .unwrap().collect();
+        let result: Vec<u64> = r.iter_in_range(start as u64..end as u64).collect();
 
         println!("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
         println!("Start {:10} End {:10}", start, end);

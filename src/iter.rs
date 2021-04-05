@@ -13,7 +13,7 @@ impl<'a> IntoIterator for &'a RsDict {
 impl<'a> RsDict {
     /// Return an iterator over all the indices of the bits set to one
     /// which are inside the provided range.
-    pub fn iter_in_range(&'a self, range: Range<u64>) -> Option<RsDictIterator<'a>> {
+    pub fn iter_in_range(&'a self, range: Range<u64>) -> RsDictIterator<'a> {
         RsDictIterator::new_in_range(self, range)
     }
 }
@@ -45,12 +45,25 @@ impl<'a> RsDictIterator<'a> {
 
     /// Create a structure that iter over all the indices of the bits set to one
     /// which are inside the provided range.
-    pub fn new_in_range(father: &RsDict, range: Range<u64>) -> Option<RsDictIterator> {
+    /// 
+    /// This iterator should give the same result of:
+    /// ```
+    /// r.iter().filter(|x| range.contains(&x))
+    /// ```
+    pub fn new_in_range(father: &RsDict, range: Range<u64>) -> RsDictIterator {
         let pos = range.start;
 
         // if the start value is bigger than all the rest, return an empty iterator
+        // code == 0 and index == max_index ensures no return value
         if pos >= father.len() as u64 {
-            return None;
+            return RsDictIterator{
+                father:father,
+                current_code: 0,
+                ptr: 0,
+                index: 0,
+                max_index: 0, 
+                max: None,
+            };
         }
 
         // if the start bit is in the last block, clear the code accordingly
@@ -60,16 +73,14 @@ impl<'a> RsDictIterator<'a> {
             // Clear the bits
             code = clear_lower_bits(code, pos - father.last_block_ind());
             // Return the iterator
-            return Some(
-                RsDictIterator{
+            return RsDictIterator{
                     father:father,
                     current_code: code,
                     ptr: 0, // no need to initialize, it will never be used
                     index: father.last_block_ind() as usize / SMALL_BLOCK_SIZE as usize,
                     max_index: father.sb_classes.len(),
                     max: Some(range.end),
-                }
-            );
+                };
         }
 
         // Start with the rank from our position's large block.
@@ -100,16 +111,15 @@ impl<'a> RsDictIterator<'a> {
         // filter the lower bits
         code = clear_lower_bits(code, pos - (sblock as u64 * SMALL_BLOCK_SIZE));
         // Create the iterator
-        Some(
-            RsDictIterator{
-                father:father,
-                current_code: code,
-                ptr: (pointer + enum_code_length as u64) as usize,
-                index: sblock,
-                max_index: father.sb_classes.len(),
-                max: Some(range.end),
-            }
-        )
+        RsDictIterator{
+            father:father,
+            current_code: code,
+            ptr: (pointer + enum_code_length as u64) as usize,
+            index: sblock,
+            max_index: father.sb_classes.len(),
+            max: Some(range.end),
+        }
+        
     }
     
     /// Create a structure that iter over all the indices of the bits set to one.

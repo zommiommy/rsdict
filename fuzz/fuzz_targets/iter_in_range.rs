@@ -46,12 +46,7 @@ fuzz_target!(|data: &[u8]| {
 
     //println!("dbug: {:?}", result);
 
-    if result.is_none() {
-        assert_eq!(0, indices.len(), "the iter returned non when there are data to be returned");
-        return;
-    }
-
-    let result: Vec<u64> = result.unwrap().collect();
+    let result: Vec<u64> = result.collect();
 
 
     //println!("truth: {:?}", &indices);
