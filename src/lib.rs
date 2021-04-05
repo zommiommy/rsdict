@@ -104,6 +104,7 @@ pub struct RsDict {
 impl RsDict {
     /// Create a dictionary from a bitset, specified as an iterator of 64-bit blocks.  This function
     /// is equivalent to pushing each bit one at a time but is much faster.
+    #[inline]
     pub fn from_blocks(blocks: impl Iterator<Item = u64>) -> Self {
         if is_x86_feature_detected!("popcnt") {
             unsafe { Self::from_blocks_popcount(blocks) }
@@ -113,6 +114,7 @@ impl RsDict {
     }
 
     #[target_feature(enable = "popcnt")]
+    #[inline]
     unsafe fn from_blocks_popcount(blocks: impl Iterator<Item = u64>) -> Self {
         Self::from_blocks_impl(blocks)
     }
@@ -214,11 +216,13 @@ impl RsDict {
     }
 
     /// Create a new `RsDict` with zero capacity.
+    #[inline]
     pub fn new() -> Self {
         Self::with_capacity(0)
     }
 
     /// Create a new `RsDict` with the given capacity preallocated.
+    #[inline]
     pub fn with_capacity(n: usize) -> Self {
         Self {
             large_blocks: Vec::with_capacity(n / LARGE_BLOCK_SIZE as usize),
@@ -237,6 +241,7 @@ impl RsDict {
 
     /// Non-inclusive rank: Count the number of `bit` values left of `pos`. Panics if `pos` is
     /// out-of-bounds.
+    #[inline]
     pub fn rank(&self, pos: u64, bit: bool) -> u64 {
         if pos >= self.len {
             panic!("Out of bounds position: {} >= {}", pos, self.len);
@@ -277,6 +282,7 @@ impl RsDict {
     /// Query the `pos`th bit (zero-indexed) of the underlying bit and the number of set bits to the
     /// left of `pos` in a single operation.  This method is faster than calling `get_bit(pos)` and
     /// `rank(pos, true)` separately.
+    #[inline]
     pub fn bit_and_one_rank(&self, pos: u64) -> (bool, u64) {
         if pos >= self.len {
             panic!("Out of bounds position: {} >= {}", pos, self.len);
@@ -309,6 +315,7 @@ impl RsDict {
 
     /// Inclusive rank: Count the number of `bit` values at indices less than or equal to
     /// `pos`. Panics if `pos` is out-of-bounds.
+    #[inline]
     pub fn inclusive_rank(&self, pos: u64, bit: bool) -> u64 {
         let (pos_bit, one_rank) = self.bit_and_one_rank(pos);
         rank_by_bit(one_rank, pos, bit) + if pos_bit == bit { 1 } else { 0 }
@@ -317,6 +324,7 @@ impl RsDict {
 
     /// Compute the position of the `rank`th instance of `bit` (zero-indexed), returning `None` if
     /// there are not `rank + 1` instances of `bit` in the array.
+    #[inline]
     pub fn select(&self, rank: u64, bit: bool) -> Option<u64> {
         if bit {
             self.select1(rank)
@@ -326,6 +334,7 @@ impl RsDict {
     }
 
     /// Specialized version of [`RsDict::select`] for finding positions of zeros.
+    #[inline]
     pub fn select0(&self, rank: u64) -> Option<u64> {
         if rank >= self.num_zeros {
             return None;
@@ -380,6 +389,7 @@ impl RsDict {
     }
 
     /// Specialized version of [`RsDict::select`] for finding positions of ones.
+    #[inline]
     pub fn select1(&self, rank: u64) -> Option<u64> {
         if rank >= self.num_ones {
             return None;
@@ -424,26 +434,31 @@ impl RsDict {
     }
 
     /// Return the length of the underlying bitmap.
+    #[inline]
     pub fn len(&self) -> usize {
         self.len as usize
     }
 
     /// Return whether the underlying bitmap is empty.
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.len == 0
     }
 
     /// Count the number of set bits in the underlying bitmap.
+    #[inline]
     pub fn count_ones(&self) -> usize {
         self.num_ones as usize
     }
 
     /// Count the number of unset bits in the underlying bitmap.
+    #[inline]
     pub fn count_zeros(&self) -> usize {
         self.num_zeros as usize
     }
 
     /// Push a bit at the end of the underlying bitmap.
+    #[inline]
     pub fn push(&mut self, bit: bool) {
         if self.len % SMALL_BLOCK_SIZE == 0 {
             self.write_block();
@@ -465,6 +480,7 @@ impl RsDict {
     }
 
     /// Query the `pos`th bit (zero-indexed) of the underlying bitmap.
+    #[inline]
     pub fn get_bit(&self, pos: u64) -> bool {
         if self.is_last_block(pos) {
             return self.last_block.get_bit(pos % SMALL_BLOCK_SIZE);
@@ -482,6 +498,7 @@ impl RsDict {
         enum_code::decode_bit(code, sb_class, pos % SMALL_BLOCK_SIZE)
     }
 
+    #[inline]
     fn write_block(&mut self) {
         if self.len > 0 {
             let block = mem::replace(&mut self.last_block, LastBlock::new());
@@ -510,6 +527,7 @@ impl RsDict {
         }
     }
 
+    #[inline]
     fn last_block_ind(&self) -> u64 {
         if self.len == 0 {
             return 0;
@@ -517,10 +535,12 @@ impl RsDict {
         ((self.len - 1) / SMALL_BLOCK_SIZE) * SMALL_BLOCK_SIZE
     }
 
+    #[inline]
     fn is_last_block(&self, pos: u64) -> bool {
         pos >= self.last_block_ind()
     }
 
+    #[inline]
     fn read_sb_index(&self, ptr: u64, code_len: u8) -> u64 {
         self.sb_indices.get(ptr as usize, code_len as usize)
     }
@@ -539,6 +559,7 @@ struct VarintBuffer {
 }
 
 impl VarintBuffer {
+    #[inline]
     fn with_capacity(bits: usize) -> Self {
         Self {
             buf: Vec::with_capacity(bits / 64),
@@ -546,6 +567,7 @@ impl VarintBuffer {
         }
     }
 
+    #[inline]
     fn push(&mut self, num_bits: usize, value: u64) {
         debug_assert!(num_bits <= 64);
         if num_bits == 0 {
@@ -562,6 +584,7 @@ impl VarintBuffer {
         self.len += num_bits;
     }
 
+    #[inline]
     fn get(&self, index: usize, num_bits: usize) -> u64 {
         debug_assert!(num_bits <= 64);
         if num_bits == 0 {
@@ -579,6 +602,7 @@ impl VarintBuffer {
         ret & mask
     }
 
+    #[inline]
     fn len(&self) -> usize {
         self.len
     }
@@ -592,6 +616,7 @@ struct LastBlock {
 }
 
 impl LastBlock {
+    #[inline]
     fn new() -> Self {
         LastBlock {
             bits: 0,
@@ -600,35 +625,43 @@ impl LastBlock {
         }
     }
 
+    #[inline]
     fn select0(&self, rank: u8) -> u64 {
         debug_assert!(rank < self.num_zeros as u8);
         enum_code::select1_raw(!self.bits, rank as u64)
     }
 
+    #[inline]
     fn select1(&self, rank: u8) -> u64 {
         debug_assert!(rank < self.num_ones as u8);
         enum_code::select1_raw(self.bits, rank as u64)
     }
 
+    #[inline]
     // Count the number of bits set at indices i >= pos
     fn count_suffix(&self, pos: u64) -> u64 {
         (self.bits >> pos).count_ones() as u64
     }
 
+    #[inline]
     fn get_bit(&self, pos: u64) -> bool {
         (self.bits >> pos) & 1 == 1
     }
 
+    #[inline]
     // Only call one of `set_one` or `set_zeros` for any `pos`.
     fn set_one(&mut self, pos: u64) {
         self.bits |= 1 << pos;
         self.num_ones += 1;
     }
+
+    #[inline]
     fn set_zero(&mut self, _pos: u64) {
         self.num_zeros += 1;
     }
 }
 
+#[inline]
 fn rank_by_bit(x: u64, n: u64, b: bool) -> u64 {
     if b {
         x

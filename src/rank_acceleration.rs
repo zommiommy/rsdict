@@ -1,5 +1,6 @@
 use crate::enum_code::ENUM_CODE_LENGTH;
 
+#[inline]
 fn scan_block_naive(classes: &[u8], start: usize, end: usize) -> (u64, u64) {
     let mut class_sum = 0;
     let mut length_sum = 0;
@@ -11,6 +12,7 @@ fn scan_block_naive(classes: &[u8], start: usize, end: usize) -> (u64, u64) {
 }
 
 #[cfg(not(all(feature = "simd", target_arch="x86_64")))]
+#[inline]
 pub fn scan_block(classes: &[u8], start: usize, end: usize) -> (u64, u64) {
     scan_block_naive(classes, start, end)
 }
@@ -34,6 +36,7 @@ mod accelerated {
     // Returns:
     // * class_sum: classes[start..end].sum()
     // * length_sum: classes[start.end].map(|i| ENUM_CODE_LENGTH[i]).sum()
+    #[inline]
     pub fn scan_block(classes: &[u8], start: usize, end: usize) -> (u64, u64) {
         if is_x86_feature_detected!("ssse3") {
             unsafe { scan_block_ssse3(classes, start, end) }
@@ -43,6 +46,7 @@ mod accelerated {
     }
 
     #[target_feature(enable = "ssse3")]
+    #[inline]
     unsafe fn scan_block_ssse3(classes: &[u8], start: usize, end: usize) -> (u64, u64) {
         // Step 1: Load the classes into a u8x16.  Our approach here is to do a
         // single load and then mask off the elements past `len`.  This is unsafe
@@ -119,7 +123,8 @@ mod accelerated {
 
 
     // Unfortunately, `packed_simd` doesn't support `psadbw` yet, which is a
-    // great way to sum a u8x16 into a u64x2 in a single SSE2 instruction.
+    // great way to sum a u8x16 into a u64x2 in a single SSE2 instruction
+    #[inline]
     unsafe fn sum_u8x16(xs: u8x16) -> u64 {
         let zero_m128: __m128i = u8x16::splat(0).into_bits();
         let xs_m128: __m128i = xs.into_bits();

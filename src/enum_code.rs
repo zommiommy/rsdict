@@ -6,6 +6,7 @@ mod binomial {
     include!(concat!(env!("OUT_DIR"), "/binomial.rs"));
 }
 
+#[inline]
 fn binomial_coefficient(n: u8, k: u8) -> u64 {
     use self::binomial::COEFFICIENT_TABLE;
     debug_assert!(n <= 64 && k <= 64);
@@ -18,6 +19,7 @@ fn binomial_coefficient(n: u8, k: u8) -> u64 {
     COEFFICIENT_TABLE[row_start + k]
 }
 
+#[inline]
 pub fn encode(value: u64, class: u8) -> (u8, u64) {
     debug_assert_eq!(value.count_ones() as u8, class);
     let code_len = ENUM_CODE_LENGTH[class as usize];
@@ -41,6 +43,7 @@ pub fn encode(value: u64, class: u8) -> (u8, u64) {
     (code_len, code)
 }
 
+#[inline]
 pub fn decode(mut code: u64, class: u8) -> u64 {
     if ENUM_CODE_LENGTH[class as usize] == SMALL_BLOCK_SIZE as u8 {
         return code;
@@ -66,6 +69,7 @@ pub fn decode(mut code: u64, class: u8) -> u64 {
     value
 }
 
+#[inline]
 pub fn decode_bit(mut code: u64, class: u8, pos: u64) -> bool {
     if ENUM_CODE_LENGTH[class as usize] == SMALL_BLOCK_SIZE as u8 {
         return (code >> pos) & 1 != 0;
@@ -111,10 +115,12 @@ fn rank_impl(mut code: u64, class: u8, pos: u64) -> u64 {
 }
 
 #[target_feature(enable = "popcnt")]
+#[inline]
 unsafe fn rank_with_popcount(code: u64, class: u8, pos: u64) -> u64 {
     rank_impl(code, class, pos)
 }
 
+#[inline]
 pub fn rank(code: u64, class: u8, pos: u64) -> u64 {
     if is_x86_feature_detected!("popcnt") {
         unsafe { rank_with_popcount(code, class, pos) }
@@ -123,6 +129,7 @@ pub fn rank(code: u64, class: u8, pos: u64) -> u64 {
     }
 }
 
+#[inline]
 // Adapted from https://lemire.me/blog/2018/02/21/iterating-over-set-bits-quickly/
 pub fn select1_raw(mut code: u64, mut rank: u64) -> u64 {
     debug_assert!(rank < code.count_ones() as u64);
@@ -138,6 +145,7 @@ pub fn select1_raw(mut code: u64, mut rank: u64) -> u64 {
     0
 }
 
+#[inline]
 pub fn select1(mut code: u64, class: u8, mut rank: u64) -> u64 {
     if ENUM_CODE_LENGTH[class as usize] == SMALL_BLOCK_SIZE as u8 {
         return select1_raw(code, rank);
@@ -165,6 +173,7 @@ pub fn select1(mut code: u64, class: u8, mut rank: u64) -> u64 {
     0
 }
 
+#[inline]
 pub fn select0(mut code: u64, class: u8, mut rank: u64) -> u64 {
     if ENUM_CODE_LENGTH[class as usize] == SMALL_BLOCK_SIZE as u8 {
         return select1_raw(!code, rank);

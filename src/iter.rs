@@ -50,6 +50,7 @@ impl<'a> RsDictIterator<'a> {
     /// ```
     /// r.iter().filter(|x| range.contains(&x))
     /// ```
+    #[inline]
     pub fn new_in_range(father: &RsDict, range: Range<u64>) -> RsDictIterator {
         let pos = range.start;
 
@@ -123,6 +124,7 @@ impl<'a> RsDictIterator<'a> {
     }
     
     /// Create a structure that iter over all the indices of the bits set to one.
+    #[inline]
     pub fn new(father: &RsDict) -> RsDictIterator {
         if father.sb_classes.len() > 0 {
             let class = father.sb_classes[0];
@@ -154,6 +156,7 @@ impl<'a> RsDictIterator<'a> {
 impl<'a> Iterator for RsDictIterator<'a> {
     type Item = u64;
     /// The iteration code takes inspiration from https://lemire.me/blog/2018/02/21/iterating-over-set-bits-quickly/
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         // if we have no values left, then read a new u64 chunk from the Rsdict
         if self.current_code == 0 { 
